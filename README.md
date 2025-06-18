@@ -84,8 +84,6 @@ To contribute to this project:
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Author
-[Your Name]
 
 ## Acknowledgments
 - Based on scikit-image computer vision library
