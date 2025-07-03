@@ -73,13 +73,9 @@ characters, columns = segment_characters(plate_img, debug=True)
 
 ## Supported Characters
 - Numbers: 0-9
-- Letters: A-Z (excluding I, O)
+- Letters: A-Z 
 
-## Development
-To contribute to this project:
-1. Fork the repository
-2. Create a new branch for your feature
-3. Submit a pull request
+
 
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
