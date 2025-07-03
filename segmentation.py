@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from skimage.measure import regionprops, label
 from skimage.transform import resize
 import numpy as np
+import matplotlib.patches as patches
 
 def segment_characters(plate_img, debug=True):
     # Threshold image
@@ -51,6 +52,17 @@ def segment_characters(plate_img, debug=True):
         plt.subplot(133)
         plt.imshow(debug_img, cmap='gray')
         plt.title('Detected Characters')
+        # Draw rectangles on the original grayscale image for each detected character
+        ax = plt.gca()
+        for region in regions:
+            minr, minc, maxr, maxc = region.bbox
+            area = region.area
+            height = maxr - minr
+            width = maxc - minc
+            aspect_ratio = width / float(height)
+            if (50 < area < 1500 and 0.1 < aspect_ratio < 1.5 and height > 8 and width > 3):
+                rect = patches.Rectangle((minc, minr), width, height, linewidth=1.5, edgecolor='red', facecolor='none')
+                ax.add_patch(rect)
         plt.tight_layout()
         plt.show()
 

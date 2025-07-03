@@ -8,37 +8,56 @@ def detect_plate_candidates(binary_image, gray_image=None, debug=False):
     plate_like_objects = []
     plate_objects_coordinates = []
 
-    plate_dimensions = (0.08 * label_image.shape[0], 0.2 * label_image.shape[0],
-                        0.15 * label_image.shape[1], 0.4 * label_image.shape[1])
+    # Loosened constraints for plate dimensions
+    plate_dimensions = (0.05 * label_image.shape[0], 0.6 * label_image.shape[0],
+                        0.10 * label_image.shape[1], 0.9 * label_image.shape[1])
     min_height, max_height, min_width, max_width = plate_dimensions
+    min_aspect, max_aspect = 3.5, 6.5  # Narrower range for plates
+    min_area = 1000
+    max_area = 15000
 
-    if debug and gray_image is not None:
-        fig, ax1 = plt.subplots(1)
-        ax1.imshow(gray_image, cmap="gray")
+    candidates = []
+    candidate_coords = []
+    candidate_aspects = []
 
     for region in regionprops(label_image):
-        if region.area < 50:
-            continue
-
         minr, minc, maxr, maxc = region.bbox
-        region_height = maxr - minr
-        region_width = maxc - minc
-
-        if (min_height <= region_height <= max_height and
-            min_width <= region_width <= max_width and
-            region_width > region_height):
+        height = maxr - minr
+        width = maxc - minc
+        aspect_ratio = width / float(height)
+        area = region.area
+        # Only consider regions in the lower half of the image
+        if minr < label_image.shape[0] // 2:
+            continue
+        if (min_height < height < max_height and
+            min_width < width < max_width and
+            min_aspect < aspect_ratio < max_aspect and
+            min_area < area < max_area):
             plate_like_objects.append(binary_image[minr:maxr, minc:maxc])
             plate_objects_coordinates.append((minr, minc, maxr, maxc))
-            if debug and gray_image is not None:
-                rectBorder = patches.Rectangle((minc, minr), region_width, region_height,
-                                               edgecolor="red", linewidth=2, fill=False)
-                ax1.add_patch(rectBorder)
+            candidates.append(binary_image[minr:maxr, minc:maxc])
+            candidate_coords.append((minr, minc, maxr, maxc))
+            candidate_aspects.append(aspect_ratio)
+            if debug:
+                print(f"Candidate: area={area}, aspect={aspect_ratio:.2f}, bbox=({minr},{minc},{maxr},{maxc})")
 
-    if debug and gray_image is not None:
-        plt.title("Detected License Plate Region")
-        plt.show()
-
-    return plate_like_objects, plate_objects_coordinates
-    plt.imshow(plate_like_objects[0], cmap='gray')
-    plt.title("Detected Plate Region")
-    plt.show()
+    # If multiple candidates, pick the one closest to typical aspect ratio
+    if candidates:
+        target_ar = 4.5
+        best_idx = min(range(len(candidate_aspects)), key=lambda i: abs(candidate_aspects[i] - target_ar))
+        best_plate = candidates[best_idx]
+        best_coord = candidate_coords[best_idx]
+        if debug and gray_image is not None:
+            fig, ax = plt.subplots(1)
+            ax.imshow(gray_image, cmap='gray')
+            minr, minc, maxr, maxc = best_coord
+            rect = patches.Rectangle((minc, minr), maxc - minc, maxr - minr,
+                                     linewidth=2, edgecolor='red', facecolor='none')
+            ax.add_patch(rect)
+            plt.title('Detected License Plate Region')
+            plt.show()
+        return [best_plate], [best_coord]
+    else:
+        if debug:
+            print("No plate-like region found.")
+        return [], []
